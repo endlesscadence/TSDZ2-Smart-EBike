@@ -129,7 +129,7 @@ void clock_uart_data (void)
       p_motor_controller_data->ui8_motor_controller_state_2 = ui8_rx_buffer[8];
       p_motor_controller_data->ui8_braking = p_motor_controller_data->ui8_motor_controller_state_2 & 1;
 
-      if (p_configuration_variables->ui8_throttle_adc_measures_motor_temperature)
+      if (p_configuration_variables->ui8_temperature_limit_feature_enabled)
       {
         p_motor_controller_data->ui8_adc_throttle = ui8_rx_buffer[9];
         p_motor_controller_data->ui8_motor_temperature = ui8_rx_buffer[10];
@@ -198,8 +198,10 @@ void clock_uart_data (void)
 
       // set lights state
       // walk assist level state
+      // set offroad state
       ui8_tx_buffer[4] = (p_motor_controller_data->ui8_lights & 1) |
-          ((p_motor_controller_data->ui8_walk_assist_level & 1) << 1);
+          ((p_motor_controller_data->ui8_walk_assist_level & 1) << 1) |
+          ((p_motor_controller_data->ui8_offroad_mode & 1) << 2);
 
       // battery max current in amps
       ui8_tx_buffer[5] = p_configuration_variables->ui8_battery_max_current;
@@ -233,9 +235,9 @@ void clock_uart_data (void)
           // bit 1: motor voltage type: 36V or 48V
           // bit 2: MOTOR_ASSISTANCE_CAN_START_WITHOUT_PEDAL_ROTATION
           ui8_tx_buffer[7] = ((p_configuration_variables->ui8_cruise_control & 1) |
-                             ((p_configuration_variables->ui8_motor_voltage_type & 1) << 1) |
-                              ((p_configuration_variables->ui8_motor_assistance_startup_without_pedal_rotation & 1) << 2) |
-                              ((p_configuration_variables->ui8_throttle_adc_measures_motor_temperature & 1) << 3));
+                             ((p_configuration_variables->ui8_motor_type & 3) << 1) |
+                              ((p_configuration_variables->ui8_motor_assistance_startup_without_pedal_rotation & 1) << 3) |
+                              ((p_configuration_variables->ui8_temperature_limit_feature_enabled & 1) << 4));
           ui8_tx_buffer[8] = p_configuration_variables->ui8_startup_motor_power_boost_state;
         break;
 
@@ -249,6 +251,8 @@ void clock_uart_data (void)
         case 5:
           // startup motor power boost fade time
           ui8_tx_buffer[7] = p_configuration_variables->ui8_startup_motor_power_boost_fade_time;
+          // boost feature enabled
+          ui8_tx_buffer[8] = (p_configuration_variables->ui8_startup_motor_power_boost_feature_enabled & 1) ? 1 : 0;
         break;
 
         case 6:
@@ -259,7 +263,7 @@ void clock_uart_data (void)
 
         case 7:
           // offroad mode configuration
-          ui8_tx_buffer[7] = ((p_configuration_variables->ui8_offroad_func_enabled & 1) |
+          ui8_tx_buffer[7] = ((p_configuration_variables->ui8_offroad_feature_enabled & 1) |
                                 ((p_configuration_variables->ui8_offroad_enabled_on_startup & 1) << 1)); 
           ui8_tx_buffer[8] = p_configuration_variables->ui8_offroad_speed_limit;
         break;

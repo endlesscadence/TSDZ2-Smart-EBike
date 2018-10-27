@@ -102,11 +102,11 @@ static void eeprom_read_values_to_variables (void)
   p_configuration_variables->ui8_pas_max_cadence = FLASH_ReadByte (ADDRESS_PAS_MAX_CADENCE);
 
   ui8_temp = FLASH_ReadByte (ADDRESS_CONFIG_1);
-  p_configuration_variables->ui8_motor_voltage_type = ui8_temp & 1;
-  p_configuration_variables->ui8_motor_assistance_startup_without_pedal_rotation = (ui8_temp & 2) >> 1;
+  p_configuration_variables->ui8_motor_type = ui8_temp & 3;
+  p_configuration_variables->ui8_motor_assistance_startup_without_pedal_rotation = (ui8_temp & 4) >> 2;
 
   ui8_temp = FLASH_ReadByte (ADDRESS_OFFROAD_CONFIG);
-  p_configuration_variables->ui8_offroad_func_enabled = ui8_temp & 1;
+  p_configuration_variables->ui8_offroad_feature_enabled = ui8_temp & 1;
   p_configuration_variables->ui8_offroad_enabled_on_startup = ui8_temp & (1 << 1);
   p_configuration_variables->ui8_offroad_power_limit_enabled = ui8_temp & (1 << 2);
 
@@ -139,9 +139,9 @@ static void variables_to_array (uint8_t *ui8_array)
   ui8_array [8] = (p_configuration_variables->ui16_wheel_perimeter >> 8) & 255;
   ui8_array [9] = p_configuration_variables->ui8_wheel_max_speed;
   ui8_array [10] = p_configuration_variables->ui8_pas_max_cadence;
-  ui8_array [11] = (p_configuration_variables->ui8_motor_voltage_type & 1) |
-                      ((p_configuration_variables->ui8_motor_assistance_startup_without_pedal_rotation & 1) << 1);
-  ui8_array [12] = (p_configuration_variables->ui8_offroad_func_enabled & 1) |
+  ui8_array [11] = (p_configuration_variables->ui8_motor_type & 3) |
+                      ((p_configuration_variables->ui8_motor_assistance_startup_without_pedal_rotation & 1) << 2);
+  ui8_array [12] = (p_configuration_variables->ui8_offroad_feature_enabled & 1) |
                       ((p_configuration_variables->ui8_offroad_enabled_on_startup & 1) << 1) |
                         ((p_configuration_variables->ui8_offroad_power_limit_enabled & 1) << 2);
   ui8_array [13] = p_configuration_variables->ui8_offroad_speed_limit;
@@ -152,10 +152,10 @@ static void eeprom_write_array (uint8_t *array)
 {
   uint8_t ui8_i;
 
-  if (FLASH_GetFlagStatus(FLASH_FLAG_DUL) == 0)
-  {
-    FLASH_Unlock (FLASH_MEMTYPE_DATA);
-  }
+  FLASH_SetProgrammingTime(FLASH_PROGRAMTIME_STANDARD);
+  
+  FLASH_Unlock (FLASH_MEMTYPE_DATA); // Unlock Data memory  
+  while (FLASH_GetFlagStatus(FLASH_FLAG_DUL) == RESET) { } // Wait until Data EEPROM area unlocked flag is set
 
   for (ui8_i = 0; ui8_i < EEPROM_BYTES_STORED; ui8_i++)
   {
